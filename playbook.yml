@@ -1,0 +1,18 @@
+- name: Deploy application configuration
+  hosts: localhost
+  vars:
+    env: "{{ lookup('env', 'ENV') }}"
+  tasks:
+    - name: Validate ENV is set
+      fail:
+        msg: "ENV not set"
+      when: env == ""
+
+    - name: Copy updated config to target location
+      copy:
+        src: "configs/{{ env }}/app.properties"
+        dest: "/tmp/app.properties"
+
+    - name: Simulate application restart
+      debug:
+        msg: "Application restarted using {{ env }} configuration"
