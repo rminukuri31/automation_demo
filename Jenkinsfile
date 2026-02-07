@@ -15,10 +15,20 @@ pipeline {
 
     stages {
 
+        stage('Setup Python venv') {
+            steps {
+                sh '''
+                    python3 -m venv automation.venv
+                    . automation.venv/bin/activate
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+
         stage('Update JDBC Config (Python)') {
             steps {
                 sh '''
-                    source automation.venv/bin/activate
+                    . automation.venv/bin/activate
                     ENV=${ENV} JDBC_URL=${JDBC_URL} python scripts/update_jdbc.py
                 '''
             }
