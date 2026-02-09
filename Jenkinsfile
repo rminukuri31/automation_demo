@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        disableConcurrentBuilds()
+    }
+
     parameters {
         choice(
             name: 'ENV',
@@ -18,6 +22,16 @@ pipeline {
         stage('Checkout SCM') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Validate Inputs') {
+            steps {
+                script {
+                    if (!params.JDBC_URL?.trim()) {
+                        error "JDBC_URL must be provided"
+                    }
+                }
             }
         }
 
@@ -40,19 +54,10 @@ pipeline {
             }
         }
 
-        stage('Prod Approval') {
-            when {
-                expression { params.ENV == 'prod' }
-            }
-            steps {
-                input message: "Approve PROD JDBC configuration update?"
-            }
-        }
-
         stage('Commit Config Changes to Git') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'github-jenkins-token',
+                    credentialsId: 'Automation_github_token',
                     usernameVariable: 'GIT_USER',
                     passwordVariable: 'GIT_TOKEN'
                 )]) {
@@ -75,6 +80,15 @@ pipeline {
                     ENV=${ENV} ansible-playbook -i inventory playbook.yml
                 '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment successful for ${ENV}"
+        }
+        failure {
+            echo "Deployment failed for ${ENV}. Check Jenkins logs and Git history."
         }
     }
 }
