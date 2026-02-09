@@ -54,27 +54,7 @@ pipeline {
             }
         }
 
-        stage('Commit Config Changes to Git') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'Automation_github_token',
-                    usernameVariable: 'GIT_USER',
-                    passwordVariable: 'GIT_TOKEN'
-                )]) {
-                    sh '''
-                        git config user.email "jenkins@automation.com"
-                        git config user.name "jenkins-bot"
-
-                        git add configs/${ENV}/app.properties
-                        git commit -m "Update JDBC config for ${ENV} - build ${BUILD_NUMBER}" || echo "No changes to commit"
-
-                        git push https://${GIT_USER}:${GIT_TOKEN}@github.com/rminukuri31/automation_demo.git main
-                    '''
-                }
-            }
-        }
-
-        stage('Deploy Config (Ansible)') {
+               stage('Deploy Config (Ansible)') {
             steps {
                 sh '''
                     ENV=${ENV} ansible-playbook -i inventory playbook.yml
@@ -92,3 +72,4 @@ pipeline {
         }
     }
 }
+
