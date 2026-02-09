@@ -15,6 +15,12 @@ pipeline {
 
     stages {
 
+        stage('Checkout SCM') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Setup Python venv') {
             steps {
                 sh '''
@@ -31,6 +37,35 @@ pipeline {
                     . automation.venv/bin/activate
                     ENV=${ENV} JDBC_URL=${JDBC_URL} python scripts/update_jdbc.py
                 '''
+            }
+        }
+
+        stage('Prod Approval') {
+            when {
+                expression { params.ENV == 'prod' }
+            }
+            steps {
+                input message: "Approve PROD JDBC configuration update?"
+            }
+        }
+
+        stage('Commit Config Changes to Git') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-jenkins-token',
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_TOKEN'
+                )]) {
+                    sh '''
+                        git config user.email "jenkins@automation.com"
+                        git config user.name "jenkins-bot"
+
+                        git add configs/${ENV}/app.properties
+                        git commit -m "Update JDBC config for ${ENV} - build ${BUILD_NUMBER}" || echo "No changes to commit"
+
+                        git push https://${GIT_USER}:${GIT_TOKEN}@github.com/rminukuri31/automation_demo.git main
+                    '''
+                }
             }
         }
 
